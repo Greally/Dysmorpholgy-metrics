@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0f1e">
+<title>Dysmorphology Metrics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #07090f;
+  --surface: #0e1220;
+  --surface2: #151b2e;
+  --border: rgba(120,160,255,0.12);
+  --border2: rgba(120,160,255,0.22);
+  --text: #e8edf8;
+  --muted: #7a8aaa;
+  --accent: #4a7cff;
+  --accent2: #64d6c8;
+  --danger: #ff6b6b;
+  --warn: #ffb347;
+  --good: #5ddb9a;
+  --serif: 'DM Serif Display', Georgia, serif;
+  --sans: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* Background grid */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(74,124,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74,124,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding: 0 16px 80px; }
+
+/* ── Header ── */
+.header {
+  padding: 40px 0 32px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+}
+.header-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.header h1 {
+  font-family: var(--serif);
+  font-size: clamp(26px, 6vw, 38px);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--text);
+}
+.header h1 em {
+  font-style: italic;
+  color: var(--accent2);
+}
+.header-sub {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ── Measurement selector ── */
+.section-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.measure-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.measure-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+  color: var(--text);
+  font-family: var(--sans);
+}
+.measure-btn:hover {
+  border-color: var(--border2);
+  background: var(--surface2);
+}
+.measure-btn.active {
+  border-color: var(--accent);
+  background: rgba(74,124,255,0.1);
+}
+.measure-btn .btn-icon {
+  font-size: 20px;
+  margin-bottom: 6px;
+  display: block;
+}
+.measure-btn .btn-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.3;
+  display: block;
+}
+.measure-btn .btn-abbr {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+  display: block;
+}
+.measure-btn.active .btn-name { color: var(--accent); }
+
+/* ── Input panel ── */
+.input-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: none;
+}
+.input-panel.visible { display: block; }
+
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.input-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.field input, .field select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+}
+.field input:focus, .field select:focus { border-color: var(--accent); }
+.field select option { background: var(--surface); }
+.field .unit-hint {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent2);
+  margin-top: -2px;
+}
+
+/* ── Result panel ── */
+.result-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: none;
+}
+.result-panel.visible { display: block; }
+
+.result-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+.result-z {
+  font-family: var(--serif);
+  font-size: 42px;
+  line-height: 1;
+  color: var(--text);
+}
+.result-z span { font-size: 18px; color: var(--muted); margin-left: 4px; }
+.result-badge {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  letter-spacing: 0.05em;
+}
+.badge-normal { background: rgba(93,219,154,0.15); color: var(--good); border: 1px solid rgba(93,219,154,0.3); }
+.badge-warn   { background: rgba(255,179,71,0.15);  color: var(--warn);   border: 1px solid rgba(255,179,71,0.3);  }
+.badge-high   { background: rgba(255,107,107,0.15); color: var(--danger); border: 1px solid rgba(255,107,107,0.3); }
+
+.zone-desc {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+/* SD bar */
+.sd-bar-wrap { margin-bottom: 8px; }
+.sd-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.sd-bar div { flex: 1; }
+.sd-marker-wrap { position: relative; height: 14px; }
+.sd-marker {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 14px;
+  border-radius: 1px;
+  transition: left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.sd-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 0.05em;
+}
+
+/* Reference values */
+.ref-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.ref-cell {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 8px 6px;
+  text-align: center;
+}
+.ref-cell .rc-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  display: block;
+  margin-bottom: 3px;
+}
+.ref-cell .rc-val {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+}
+.ref-cell.rc-mean .rc-label { color: var(--accent2); }
+.ref-cell.rc-mean .rc-val   { color: var(--accent2); }
+
+/* ── Chart ── */
+.chart-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 16px 16px;
+  margin-bottom: 20px;
+  display: none;
+}
+.chart-panel.visible { display: block; }
+.chart-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.chart-wrap { position: relative; height: 240px; }
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.leg {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+.leg-line {
+  width: 20px;
+  height: 2px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+.leg-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Source note ── */
+.source-note {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: none;
+}
+.source-note.visible { display: block; }
+.source-note strong { color: var(--accent2); font-weight: 500; }
+
+/* ── Age subtype selector ── */
+.age-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.age-tab {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+.age-tab.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(74,124,255,0.08);
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-eyebrow">Hall et al. · Handbook of Physical Measurements</div>
+    <h1>Dysmorphology <em>Metrics</em></h1>
+    <p class="header-sub">Craniofacial normative data, digitized from published reference charts. Enter a measurement to see its SD classification.</p>
+  </div>
+
+  <p class="section-label">Select measurement</p>
+  <div class="measure-grid" id="measureGrid"></div>
+
+  <div class="input-panel" id="inputPanel">
+    <div id="ageTabsWrap" style="display:none">
+      <p class="section-label" style="margin-bottom:8px">Age range</p>
+      <div class="age-tabs" id="ageTabs"></div>
+    </div>
+    <div class="input-row" id="inputRow">
+      <!-- dynamically filled -->
+    </div>
+    <p class="unit-hint" id="unitHint" style="font-family:var(--mono);font-size:11px;color:var(--accent2);margin-top:4px;"></p>
+  </div>
+
+  <div class="result-panel" id="resultPanel">
+    <div class="result-top">
+      <div>
+        <div class="result-z" id="resultZ">—</div>
+        <div class="zone-desc" id="zoneDesc"></div>
+      </div>
+      <div class="result-badge" id="resultBadge"></div>
+    </div>
+    <div class="sd-bar-wrap">
+      <div class="sd-bar">
+        <div style="background:#7F77DD"></div>
+        <div style="background:#85B7EB"></div>
+        <div style="background:#5ddb9a"></div>
+        <div style="background:#5ddb9a"></div>
+        <div style="background:#ffb347"></div>
+        <div style="background:#ff6b6b"></div>
+      </div>
+      <div class="sd-marker-wrap"><div class="sd-marker" id="sdMarker"></div></div>
+      <div class="sd-labels"><span>−3 SD</span><span>−2 SD</span><span>−1 SD</span><span>Mean</span><span>+1 SD</span><span>+2 SD</span><span>+3 SD</span></div>
+    </div>
+    <div class="ref-grid" id="refGrid"></div>
+  </div>
+
+  <div class="chart-panel" id="chartPanel">
+    <div class="chart-title" id="chartTitle"></div>
+    <div class="chart-wrap"><canvas id="chartCanvas"></canvas></div>
+    <div class="chart-legend" id="chartLegend"></div>
+  </div>
+
+  <div class="source-note" id="sourceNote"></div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// NORMATIVE DATA — digitized from Hall et al. 2nd ed. figures
+// ═══════════════════════════════════════════════════════════
+
+const MEASUREMENTS = {
+
+  // ── 1. Palpebral Fissure Length ──────────────────────────
+  // Fig 7.46 | Farkas (1981), Chouke (1929), Laestadius (1969), Thomas (1987)
+  // Unit: mm | Age: birth–16 yr | Both sexes
+  pfl: {
+    id: 'pfl', icon: '👁', name: 'Palpebral Fissure Length', abbr: 'PFL',
+    unit: 'mm', unitLabel: 'mm', yLabel: 'PFL (mm)', yMin: 14, yMax: 38,
+    ageLabel: 'Age (years)', ageUnit: 'years', ageMin: 0, ageMax: 16,
+    source: 'Fig 7.46 — Farkas (1981), Chouke (1929), Laestadius et al. (1969), Thomas et al. (1987). Both sexes, birth to 16 years.',
+    hasBands: true, // has ±1SD and ±2SD
+    // [age_yr, mean, +1SD, +2SD, -1SD, -2SD]
+    data: [
+      [0,    19.5, 21.5, 23.5, 17.5, 15.5],
+      [0.5,  21.8, 23.8, 25.8, 19.8, 17.8],
+      [1,    23.5, 25.6, 27.7, 21.4, 19.3],
+      [2,    25.5, 27.7, 29.9, 23.3, 21.1],
+      [3,    26.8, 29.0, 31.2, 24.6, 22.4],
+      [4,    27.6, 29.9, 32.2, 25.3, 23.0],
+      [5,    28.2, 30.5, 32.8, 25.9, 23.6],
+      [6,    28.7, 31.0, 33.3, 26.4, 24.1],
+      [7,    29.0, 31.4, 33.8, 26.6, 24.2],
+      [8,    29.3, 31.7, 34.1, 26.9, 24.5],
+      [9,    29.6, 32.0, 34.4, 27.2, 24.8],
+      [10,   29.8, 32.2, 34.6, 27.4, 25.0],
+      [12,   30.1, 32.5, 34.9, 27.7, 25.3],
+      [14,   30.3, 32.7, 35.1, 27.9, 25.5],
+      [16,   30.5, 33.0, 35.5, 28.0, 25.5],
+    ],
+    ageModes: null,
+  },
+
+  // ── 2. Inner Canthal Distance (postnatal) ────────────────
+  // Fig 7.35 | Laestadius (1969) + Feingold & Bossert (1974)
+  // Unit: cm | Age: birth–16 yr | Both sexes
+  icd: {
+    id: 'icd', icon: '↔', name: 'Inner Canthal Distance', abbr: 'ICD',
+    unit: 'cm', unitLabel: 'cm', yLabel: 'ICD (cm)', yMin: 1.0, yMax: 4.2,
+    ageLabel: 'Age (years)', ageUnit: 'years', ageMin: 0, ageMax: 16,
+    source: 'Fig 7.35 — Laestadius et al. (1969) and Feingold & Bossert (1974). Both sexes, birth to 16 years. Fig 7.34 — Merlob et al. (1984), gestational age 27–41 weeks.',
+    hasBands: true,
+    // [age_yr, mean, +1SD, +2SD, -1SD, -2SD]
+    data: [
+      [0,    1.50, 1.75, 2.00, 1.25, 1.00],
+      [0.5,  2.10, 2.35, 2.60, 1.85, 1.60],
+      [1,    2.45, 2.70, 2.95, 2.20, 1.95],
+      [2,    2.60, 2.85, 3.10, 2.35, 2.10],
+      [3,    2.72, 2.97, 3.22, 2.47, 2.22],
+      [4,    2.80, 3.05, 3.30, 2.55, 2.30],
+      [5,    2.85, 3.10, 3.35, 2.60, 2.35],
+      [6,    2.88, 3.13, 3.38, 2.63, 2.38],
+      [7,    2.91, 3.16, 3.41, 2.66, 2.41],
+      [8,    2.94, 3.19, 3.44, 2.69, 2.44],
+      [9,    2.97, 3.22, 3.47, 2.72, 2.47],
+      [10,   3.00, 3.24, 3.49, 2.75, 2.50],
+      [12,   3.04, 3.28, 3.53, 2.79, 2.54],
+      [14,   3.08, 3.32, 3.57, 2.83, 2.58],
+      [16,   3.11, 3.36, 3.60, 2.86, 2.61],
+    ],
+    ageModes: [
+      { id: 'postnatal', label: 'Birth–16 yr', ageUnit: 'years', ageMin: 0, ageMax: 16, ageLabel: 'Age (years)' },
+      { id: 'gestational', label: 'Gestational', ageUnit: 'weeks', ageMin: 27, ageMax: 41, ageLabel: 'Gestational age (weeks)',
+        yMin: 1.0, yMax: 3.2, yLabel: 'ICD (cm)',
+        // Fig 7.34 — Merlob: [gest_wk, mean, +2SD, -2SD]
+        data2sd: [
+          [27, 1.55, 1.82, 1.28],
+          [28, 1.62, 1.90, 1.35],
+          [29, 1.68, 1.97, 1.40],
+          [30, 1.74, 2.04, 1.45],
+          [31, 1.80, 2.10, 1.50],
+          [32, 1.87, 2.18, 1.56],
+          [33, 1.93, 2.26, 1.61],
+          [34, 1.99, 2.33, 1.65],
+          [35, 2.04, 2.38, 1.70],
+          [36, 2.08, 2.43, 1.73],
+          [37, 2.11, 2.46, 1.76],
+          [38, 2.13, 2.49, 1.78],
+          [39, 2.14, 2.51, 1.78],
+          [40, 2.14, 2.52, 1.77],
+          [41, 2.13, 2.51, 1.76],
+        ],
+      },
+    ],
+  },
+
+  // ── 3. Outer Canthal Distance ────────────────────────────
+  // Fig 7.38 | Feingold & Bossert (1974)
+  // Unit: cm | Age: birth–14 yr | Both sexes | percentile bands
+  ocd: {
+    id: 'ocd', icon: '⟺', name: 'Outer Canthal Distance', abbr: 'OCD',
+    unit: 'cm', unitLabel: 'cm', yLabel: 'OCD (cm)', yMin: 4.5, yMax: 11,
+    ageLabel: 'Age', ageUnit: 'months', ageMin: 0, ageMax: 14,
+    source: 'Fig 7.38 — Feingold & Bossert (1974). Both sexes, birth to 14 years. Fig 7.37 — Merlob et al. (1984), gestational age 27–41 weeks.',
+    hasBands: true,
+    // Mixed axis: 0–24 months then years. Stored as fractional years.
+    // Percentile bands mapped: 3rd≈−2SD, 25th≈−0.67SD, 50th=mean, 75th≈+0.67SD, 97th≈+2SD
+    // [age_yr, mean(50th), +2SD(97th), -2SD(3rd)]
+    data: [
+      [0,      6.40, 7.40, 5.30],
+      [0.25,   6.85, 7.85, 5.85],
+      [0.5,    7.10, 8.05, 6.10],
+      [0.75,   7.25, 8.20, 6.20],
+      [1,      7.35, 8.30, 6.30],
+      [1.25,   7.40, 8.35, 6.35],
+      [1.5,    7.42, 8.38, 6.37],
+      [1.75,   7.44, 8.40, 6.40],
+      [2,      7.45, 8.42, 6.42],
+      [3,      7.60, 8.65, 6.52],
+      [4,      7.75, 8.80, 6.60],
+      [5,      7.90, 8.96, 6.70],
+      [6,      8.05, 9.12, 6.78],
+      [7,      8.18, 9.26, 6.87],
+      [8,      8.28, 9.38, 6.95],
+      [9,      8.38, 9.50, 7.05],
+      [10,     8.48, 9.60, 7.12],
+      [11,     8.55, 9.70, 7.18],
+      [12,     8.62, 9.80, 7.22],
+      [13,     8.68, 9.87, 7.25],
+      [14,     8.72, 9.92, 7.27],
+    ],
+    ageModes: [
+      { id: 'postnatal', label: 'Birth–14 yr', ageUnit: 'mixed', ageMin: 0, ageMax: 14, ageLabel: 'Age' },
+      { id: 'gestational', label: 'Gestational', ageUnit: 'weeks', ageMin: 27, ageMax: 41, ageLabel: 'Gestational age (weeks)',
+        yMin: 2.8, yMax: 7.0, yLabel: 'OCD (cm)',
+        // Fig 7.37 — Merlob: [gest_wk, mean, +2SD, -2SD]
+        data2sd: [
+          [27, 3.90, 4.55, 3.30],
+          [28, 4.10, 4.75, 3.45],
+          [29, 4.28, 4.95, 3.62],
+          [30, 4.45, 5.12, 3.78],
+          [31, 4.62, 5.28, 3.95],
+          [32, 4.78, 5.44, 4.10],
+          [33, 4.93, 5.60, 4.24],
+          [34, 5.07, 5.74, 4.38],
+          [35, 5.19, 5.87, 4.50],
+          [36, 5.30, 5.99, 4.60],
+          [37, 5.40, 6.10, 4.70],
+          [38, 5.48, 6.19, 4.78],
+          [39, 5.55, 6.26, 4.84],
+          [40, 5.60, 6.32, 4.88],
+          [41, 5.63, 6.36, 4.90],
+        ],
+      },
+    ],
+  },
+
+  // ── 4. Interpupillary Distance ───────────────────────────
+  // Fig 7.41 | Feingold & Bossert (1974)
+  // Unit: cm | Age: birth–16 yr | Both sexes | percentile bands (3,25,50,75,97)
+  ipd: {
+    id: 'ipd', icon: '◉', name: 'Interpupillary Distance', abbr: 'IPD',
+    unit: 'cm', unitLabel: 'cm', yLabel: 'IPD (cm)', yMin: 2.0, yMax: 8.0,
+    ageLabel: 'Age (years)', ageUnit: 'years', ageMin: 0, ageMax: 16,
+    source: 'Fig 7.41 — Feingold & Bossert (1974). Birth to 16 years.',
+    hasBands: false, // percentile bands, 3rd/97th ≈ ±2SD
+    // [age_yr, 50th(mean), 97th(+2SD), 3rd(-2SD)]
+    data: [
+      [0,    4.05, 4.65, 3.45],
+      [0.5,  4.40, 5.00, 3.80],
+      [1,    4.62, 5.25, 3.98],
+      [2,    4.87, 5.48, 4.24],
+      [3,    4.96, 5.57, 4.32],
+      [4,    5.00, 5.62, 4.37],
+      [5,    5.05, 5.67, 4.42],
+      [6,    5.08, 5.72, 4.44],
+      [7,    5.12, 5.77, 4.48],
+      [8,    5.17, 5.83, 4.52],
+      [9,    5.22, 5.90, 4.55],
+      [10,   5.27, 5.97, 4.58],
+      [11,   5.33, 6.05, 4.62],
+      [12,   5.40, 6.14, 4.67],
+      [13,   5.48, 6.22, 4.73],
+      [14,   5.56, 6.32, 4.80],
+      [15,   5.80, 6.55, 5.05],
+      [16,   5.85, 6.60, 5.10],
+    ],
+    ageModes: null,
+  },
+
+  // ── 5. Ear Length ────────────────────────────────────────
+  // Fig 7.57 | Farkas (1981) + Feingold & Bossert (1974)
+  // Unit: mm | Age: birth–16 yr | Both sexes
+  ear: {
+    id: 'ear', icon: '👂', name: 'Ear Length', abbr: 'EAR',
+    unit: 'mm', unitLabel: 'mm', yLabel: 'Ear length (mm)', yMin: 28, yMax: 72,
+    ageLabel: 'Age (years)', ageUnit: 'years', ageMin: 0, ageMax: 16,
+    source: 'Fig 7.57 — Farkas (1981) and Feingold & Bossert (1974). Both sexes, birth to 16 years.',
+    hasBands: true,
+    // [age_yr, mean, +1SD, +2SD, -1SD, -2SD]
+    data: [
+      [0,    38.0, 42.0, 46.0, 34.0, 30.0],
+      [0.5,  42.5, 46.5, 50.5, 38.5, 34.5],
+      [1,    45.5, 49.5, 53.5, 41.5, 37.5],
+      [2,    49.5, 53.5, 57.5, 45.5, 41.5],
+      [3,    51.8, 55.8, 59.8, 47.8, 43.8],
+      [4,    53.2, 57.2, 61.2, 49.2, 45.2],
+      [5,    54.2, 58.2, 62.2, 50.2, 46.2],
+      [6,    55.0, 59.0, 63.0, 51.0, 47.0],
+      [7,    55.6, 59.6, 63.6, 51.6, 47.6],
+      [8,    56.2, 60.2, 64.2, 52.2, 48.2],
+      [9,    56.8, 60.8, 64.8, 52.8, 48.8],
+      [10,   57.4, 61.4, 65.4, 53.4, 49.4],
+      [11,   57.9, 62.0, 66.0, 53.9, 49.9],
+      [12,   58.4, 62.5, 66.5, 54.4, 50.4],
+      [13,   58.8, 63.0, 67.0, 54.8, 50.8],
+      [14,   59.2, 63.3, 67.3, 55.2, 51.2],
+      [15,   59.6, 63.7, 67.7, 55.6, 51.6],
+      [16,   60.0, 64.0, 68.0, 56.0, 52.0],
+    ],
+    ageModes: null,
+  },
+
+  // ── 6. Anterior Fontanelle Size ──────────────────────────
+  // Fig 7.26 | Popich & Smith (1972)
+  // Unit: cm | Age: birth–24 months | Both sexes
+  // Sum of longitudinal + transverse diameters
+  afe: {
+    id: 'afe', icon: '◎', name: 'Anterior Fontanelle', abbr: 'AFE',
+    unit: 'cm', unitLabel: 'cm (L+T diameters)', yLabel: 'Fontanelle size (cm)', yMin: 0, yMax: 5.5,
+    ageLabel: 'Age (months)', ageUnit: 'months', ageMin: 0, ageMax: 24,
+    source: 'Fig 7.26 — Popich & Smith (1972). Anterior fontanelle size = sum of longitudinal and transverse diameters. Birth to 24 months.',
+    hasBands: true,
+    // [age_months, mean, +1SD, +2SD, -1SD, -2SD]
+    // Key feature: peaks at ~3 months then declines to ~0 by 18–21 months
+    data: [
+      [0,   2.05, 2.95, 3.90, 1.55, 0.70],
+      [1,   2.40, 3.30, 4.20, 1.65, 0.80],
+      [2,   2.75, 3.65, 4.50, 1.80, 0.90],
+      [3,   2.60, 3.52, 4.48, 1.55, 0.80],
+      [4,   2.40, 3.28, 4.20, 1.40, 0.65],
+      [5,   2.15, 3.00, 3.90, 1.25, 0.55],
+      [6,   1.95, 2.78, 3.65, 1.12, 0.48],
+      [7,   1.75, 2.58, 3.42, 0.98, 0.40],
+      [8,   1.57, 2.38, 3.20, 0.86, 0.32],
+      [9,   1.40, 2.18, 3.00, 0.74, 0.24],
+      [10,  1.22, 1.98, 2.78, 0.62, 0.18],
+      [11,  1.05, 1.78, 2.55, 0.50, 0.12],
+      [12,  0.88, 1.58, 2.32, 0.36, 0.06],
+      [13,  0.72, 1.38, 2.08, 0.24, 0.02],
+      [14,  0.56, 1.18, 1.84, 0.12, 0.00],
+      [15,  0.42, 0.98, 1.60, 0.05, 0.00],
+      [16,  0.28, 0.80, 1.38, 0.00, 0.00],
+      [17,  0.16, 0.62, 1.18, 0.00, 0.00],
+      [18,  0.07, 0.45, 0.98, 0.00, 0.00],
+      [19,  0.02, 0.28, 0.78, 0.00, 0.00],
+      [20,  0.00, 0.14, 0.58, 0.00, 0.00],
+      [21,  0.00, 0.05, 0.40, 0.00, 0.00],
+      [22,  0.00, 0.00, 0.22, 0.00, 0.00],
+      [23,  0.00, 0.00, 0.10, 0.00, 0.00],
+      [24,  0.00, 0.00, 0.00, 0.00, 0.00],
+    ],
+    ageModes: null,
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════════════
+
+let activeMeasure = null;
+let activeAgeMode = 0; // index into ageModes
+let chartInstance = null;
+
+// ═══════════════════════════════════════════════════════════
+// INTERPOLATION
+// ═══════════════════════════════════════════════════════════
+
+function interpolateRow(data, age) {
+  if (age <= data[0][0]) return [...data[0]];
+  if (age >= data[data.length-1][0]) return [...data[data.length-1]];
+  for (let i = 0; i < data.length-1; i++) {
+    if (age >= data[i][0] && age <= data[i+1][0]) {
+      const t = (age - data[i][0]) / (data[i+1][0] - data[i][0]);
+      return data[i].map((v, j) => j === 0 ? age : v + t * (data[i+1][j] - data[i][j]));
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER MEASUREMENT GRID
+// ═══════════════════════════════════════════════════════════
+
+function renderMeasureGrid() {
+  const grid = document.getElementById('measureGrid');
+  grid.innerHTML = '';
+  Object.values(MEASUREMENTS).forEach(m => {
+    const btn = document.createElement('button');
+    btn.className = 'measure-btn';
+    btn.dataset.id = m.id;
+    btn.innerHTML = `<span class="btn-icon">${m.icon}</span><span class="btn-name">${m.name}</span><span class="btn-abbr">${m.abbr}</span>`;
+    btn.addEventListener('click', () => selectMeasure(m.id));
+    grid.appendChild(btn);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// SELECT MEASUREMENT
+// ═══════════════════════════════════════════════════════════
+
+function selectMeasure(id) {
+  activeMeasure = MEASUREMENTS[id];
+  activeAgeMode = 0;
+  document.querySelectorAll('.measure-btn').forEach(b => b.classList.toggle('active', b.dataset.id === id));
+  renderInputPanel();
+  document.getElementById('resultPanel').classList.remove('visible');
+  document.getElementById('chartPanel').classList.remove('visible');
+  document.getElementById('sourceNote').classList.remove('visible');
+  renderChart();
+}
+
+// ═══════════════════════════════════════════════════════════
+// INPUT PANEL
+// ═══════════════════════════════════════════════════════════
+
+function renderInputPanel() {
+  const m = activeMeasure;
+  const panel = document.getElementById('inputPanel');
+  panel.classList.add('visible');
+
+  // Age mode tabs (gestational vs postnatal for ICD, OCD)
+  const tabsWrap = document.getElementById('ageTabsWrap');
+  const tabsEl = document.getElementById('ageTabs');
+  if (m.ageModes && m.ageModes.length > 1) {
+    tabsWrap.style.display = 'block';
+    tabsEl.innerHTML = '';
+    m.ageModes.forEach((mode, i) => {
+      const tab = document.createElement('button');
+      tab.className = 'age-tab' + (i === activeAgeMode ? ' active' : '');
+      tab.textContent = mode.label;
+      tab.addEventListener('click', () => { activeAgeMode = i; renderInputPanel(); });
+      tabsEl.appendChild(tab);
+    });
+  } else {
+    tabsWrap.style.display = 'none';
+  }
+
+  const mode = m.ageModes ? m.ageModes[activeAgeMode] : null;
+  const ageUnit = mode ? mode.ageUnit : m.ageUnit;
+  const ageLabel = mode ? mode.ageLabel : m.ageLabel;
+  const ageMin = mode ? mode.ageMin : 0;
+  const ageMax = mode ? mode.ageMax : m.ageMax;
+
+  const row = document.getElementById('inputRow');
+
+  let ageInputHTML = '';
+  if (ageUnit === 'mixed') {
+    // months 0–24, then years
+    ageInputHTML = `
+      <div class="field">
+        <label>Age value</label>
+        <input type="number" id="ageVal" min="0" max="14" step="0.1" placeholder="e.g. 6">
+      </div>
+      <div class="field">
+        <label>Age unit</label>
+        <select id="ageUnitSel">
+          <option value="months">Months</option>
+          <option value="years" selected>Years</option>
+        </select>
+      </div>
+    `;
+  } else if (ageUnit === 'months') {
+    ageInputHTML = `
+      <div class="field">
+        <label>${ageLabel}</label>
+        <input type="number" id="ageVal" min="${ageMin}" max="${ageMax}" step="1" placeholder="e.g. 6">
+      </div>
+    `;
+  } else if (ageUnit === 'weeks') {
+    ageInputHTML = `
+      <div class="field">
+        <label>${ageLabel}</label>
+        <input type="number" id="ageVal" min="${ageMin}" max="${ageMax}" step="1" placeholder="e.g. 34">
+      </div>
+    `;
+  } else {
+    ageInputHTML = `
+      <div class="field">
+        <label>Age value</label>
+        <input type="number" id="ageVal" min="${ageMin}" max="${ageMax}" step="0.1" placeholder="e.g. 5">
+      </div>
+      <div class="field">
+        <label>Age unit</label>
+        <select id="ageUnitSel">
+          <option value="months">Months</option>
+          <option value="years" selected>Years</option>
+        </select>
+      </div>
+    `;
+  }
+
+  row.innerHTML = ageInputHTML + `
+    <div class="field" style="grid-column: 1 / -1;">
+      <label>Measurement (${m.unitLabel})</label>
+      <input type="number" id="measVal" step="0.1" placeholder="Enter value">
+    </div>
+  `;
+
+  document.getElementById('unitHint').textContent = m.unit === 'mm' ? 'Enter in millimetres' : 'Enter in centimetres';
+
+  // Live listeners
+  row.querySelectorAll('input, select').forEach(el => el.addEventListener('input', compute));
+}
+
+// ═══════════════════════════════════════════════════════════
+// COMPUTE RESULT
+// ═══════════════════════════════════════════════════════════
+
+function compute() {
+  const m = activeMeasure;
+  const measEl = document.getElementById('measVal');
+  const ageEl = document.getElementById('ageVal');
+  if (!measEl || !ageEl) return;
+
+  const meas = parseFloat(measEl.value);
+  const ageRaw = parseFloat(ageEl.value);
+  if (isNaN(meas) || isNaN(ageRaw)) {
+    document.getElementById('resultPanel').classList.remove('visible');
+    return;
+  }
+
+  const mode = m.ageModes ? m.ageModes[activeAgeMode] : null;
+  const ageUnitEl = document.getElementById('ageUnitSel');
+  const isGestational = mode && mode.ageUnit === 'weeks';
+
+  let ageForLookup; // normalized to the data's native unit
+  if (isGestational) {
+    ageForLookup = ageRaw; // weeks
+  } else if (ageUnitEl) {
+    ageForLookup = ageUnitEl.value === 'months' ? ageRaw / 12 : ageRaw; // convert to years
+  } else if (m.ageUnit === 'months') {
+    ageForLookup = ageRaw; // already months for AFE
+  } else {
+    ageForLookup = ageRaw;
+  }
+
+  let mean, p1, p2, m1, m2, sdEst;
+
+  if (isGestational && mode.data2sd) {
+    const row = interpolateRow(mode.data2sd, ageForLookup);
+    mean = row[1]; p2 = row[2]; m2 = row[3];
+    sdEst = (p2 - mean) / 2;
+    p1 = mean + sdEst; m1 = mean - sdEst;
+  } else if (m.hasBands) {
+    const row = interpolateRow(m.data, ageForLookup);
+    mean = row[1]; p1 = row[2]; p2 = row[3]; m1 = row[4]; m2 = row[5];
+    sdEst = p1 - mean;
+  } else {
+    // percentile-only (IPD, OCD)
+    const row = interpolateRow(m.data, ageForLookup);
+    mean = row[1]; p2 = row[2]; m2 = row[3];
+    sdEst = (p2 - mean) / 2;
+    p1 = mean + sdEst; m1 = mean - sdEst;
+  }
+
+  const z = (meas - mean) / sdEst;
+  showResult(z, meas, mean, p1, p2, m1, m2, m.unitLabel);
+  updateChartPoint(ageForLookup, meas);
+}
+
+// ═══════════════════════════════════════════════════════════
+// SHOW RESULT
+// ═══════════════════════════════════════════════════════════
+
+function showResult(z, meas, mean, p1, p2, m1, m2, unit) {
+  const panel = document.getElementById('resultPanel');
+  panel.classList.add('visible');
+
+  document.getElementById('resultZ').innerHTML = `${z.toFixed(2)}<span>z</span>`;
+
+  let zone, badgeClass, color;
+  if (z > 2)       { zone = 'Above +2 SD — unusually large'; badgeClass = 'badge-high'; color = '#ff6b6b'; }
+  else if (z > 1)  { zone = 'Between +1 SD and +2 SD'; badgeClass = 'badge-warn'; color = '#ffb347'; }
+  else if (z >= -1){ zone = 'Within ±1 SD — normal range'; badgeClass = 'badge-normal'; color = '#5ddb9a'; }
+  else if (z >= -2){ zone = 'Between −1 SD and −2 SD'; badgeClass = 'badge-warn'; color = '#ffb347'; }
+  else             { zone = 'Below −2 SD — unusually small'; badgeClass = 'badge-high'; color = '#7F77DD'; }
+
+  document.getElementById('zoneDesc').textContent = zone;
+  const badge = document.getElementById('resultBadge');
+  badge.textContent = z > 2 ? '> +2 SD' : z > 1 ? '+1 to +2 SD' : z >= -1 ? 'Normal' : z >= -2 ? '−1 to −2 SD' : '< −2 SD';
+  badge.className = 'result-badge ' + badgeClass;
+
+  const pct = Math.min(100, Math.max(0, ((z + 3) / 6) * 100));
+  const marker = document.getElementById('sdMarker');
+  marker.style.left = pct + '%';
+  marker.style.background = color;
+
+  const grid = document.getElementById('refGrid');
+  grid.innerHTML = [
+    ['−2 SD', m2.toFixed(2)],
+    ['−1 SD', m1.toFixed(2)],
+    ['Mean',  mean.toFixed(2), true],
+    ['+1 SD', p1.toFixed(2)],
+    ['+2 SD', p2.toFixed(2)],
+  ].map(([label, val, isMean]) => `
+    <div class="ref-cell${isMean ? ' rc-mean' : ''}">
+      <span class="rc-label">${label}</span>
+      <span class="rc-val">${val}</span>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHART
+// ═══════════════════════════════════════════════════════════
+
+function renderChart() {
+  const m = activeMeasure;
+  if (!m) return;
+
+  const panel = document.getElementById('chartPanel');
+  panel.classList.add('visible');
+  document.getElementById('sourceNote').classList.add('visible');
+
+  const mode = m.ageModes ? m.ageModes[activeAgeMode] : null;
+  const isGestational = mode && mode.ageUnit === 'weeks';
+
+  let data, xLabel, yMin, yMax, yLbl, hasFullBands;
+
+  if (isGestational && mode.data2sd) {
+    data = mode.data2sd;
+    xLabel = mode.ageLabel;
+    yMin = mode.yMin; yMax = mode.yMax; yLbl = mode.yLabel;
+    hasFullBands = false;
+  } else {
+    data = m.data;
+    xLabel = m.ageLabel;
+    yMin = m.yMin; yMax = m.yMax; yLbl = m.yLabel;
+    hasFullBands = m.hasBands;
+  }
+
+  const ages = data.map(r => r[0]);
+
+  document.getElementById('chartTitle').textContent = m.name + ' — normative reference';
+  document.getElementById('sourceNote').innerHTML = `<strong>Source:</strong> ${m.source}<br>For clinical use, verify against printed source. Digitized curves are interpolated from published figure values.`;
+
+  const tCol = 'rgba(122,138,170,0.8)';
+  const gCol = 'rgba(120,160,255,0.06)';
+
+  const datasets = [];
+  if (hasFullBands) {
+    datasets.push({ label:'+2 SD', data: data.map(r=>({x:r[0],y:r[3]})), borderColor:'#ff6b6b', borderWidth:1.5, borderDash:[5,3], pointRadius:0, fill:false, tension:0.4 });
+    datasets.push({ label:'+1 SD', data: data.map(r=>({x:r[0],y:r[2]})), borderColor:'#ffb347', borderWidth:1.5, borderDash:[4,2], pointRadius:0, fill:false, tension:0.4 });
+    datasets.push({ label:'Mean',  data: data.map(r=>({x:r[0],y:r[1]})), borderColor:'#64d6c8', borderWidth:2.5, pointRadius:0, fill:false, tension:0.4 });
+    datasets.push({ label:'−1 SD', data: data.map(r=>({x:r[0],y:r[4]})), borderColor:'#ffb347', borderWidth:1.5, borderDash:[4,2], pointRadius:0, fill:false, tension:0.4 });
+    datasets.push({ label:'−2 SD', data: data.map(r=>({x:r[0],y:r[5]})), borderColor:'#ff6b6b', borderWidth:1.5, borderDash:[5,3], pointRadius:0, fill:false, tension:0.4 });
+  } else {
+    // 2SD only
+    datasets.push({ label:'+2 SD', data: data.map(r=>({x:r[0],y:r[2]})), borderColor:'#ff6b6b', borderWidth:1.5, borderDash:[5,3], pointRadius:0, fill:false, tension:0.4 });
+    datasets.push({ label:'Mean',  data: data.map(r=>({x:r[0],y:r[1]})), borderColor:'#64d6c8', borderWidth:2.5, pointRadius:0, fill:false, tension:0.4 });
+    datasets.push({ label:'−2 SD', data: data.map(r=>({x:r[0],y:r[3]})), borderColor:'#7F77DD', borderWidth:1.5, borderDash:[5,3], pointRadius:0, fill:false, tension:0.4 });
+  }
+  // Patient point dataset
+  datasets.push({ label:'Patient', data:[], borderColor:'#fff', backgroundColor:'#fff', pointRadius:6, pointStyle:'crossRot', pointBorderWidth:2.5, showLine:false });
+
+  if (chartInstance) chartInstance.destroy();
+
+  const xMin = ages[0];
+  const xMax = ages[ages.length-1];
+
+  chartInstance = new Chart(document.getElementById('chartCanvas').getContext('2d'), {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      parsing: false,
+      plugins: {
+        legend:{display:false},
+        tooltip:{callbacks:{
+          title: c => xLabel.includes('weeks') ? 'GA: '+c[0].parsed.x+' wk' : c[0].parsed.x < 2 && !xLabel.includes('months') ? 'Age: '+(c[0].parsed.x*12).toFixed(1)+' mo' : 'Age: '+c[0].parsed.x+' yr',
+          label: c => c.dataset.label+': '+c.parsed.y.toFixed(2)+' '+m.unit
+        }}
+      },
+      scales: {
+        x: { type:'linear', min:xMin, max:xMax, title:{display:true,text:xLabel,color:tCol,font:{size:11}}, ticks:{color:tCol,font:{size:10}}, grid:{color:gCol} },
+        y: { min:yMin, max:yMax, title:{display:true,text:yLbl,color:tCol,font:{size:11}}, ticks:{color:tCol,font:{size:10}}, grid:{color:gCol} }
+      }
+    }
+  });
+
+  // Legend
+  const legEl = document.getElementById('chartLegend');
+  const legItems = hasFullBands
+    ? [{c:'#ff6b6b',l:'+2 SD',dash:true},{c:'#ffb347',l:'+1 SD',dash:true},{c:'#64d6c8',l:'Mean'},{c:'#ffb347',l:'−1 SD',dash:true},{c:'#ff6b6b',l:'−2 SD',dash:true},{c:'#fff',l:'Patient',dot:true}]
+    : [{c:'#ff6b6b',l:'+2 SD',dash:true},{c:'#64d6c8',l:'Mean'},{c:'#7F77DD',l:'−2 SD',dash:true},{c:'#fff',l:'Patient',dot:true}];
+  legEl.innerHTML = legItems.map(item => item.dot
+    ? `<span class="leg"><span class="leg-dot" style="background:${item.c}"></span>${item.l}</span>`
+    : `<span class="leg"><span class="leg-line" style="background:${item.c};${item.dash?'background:repeating-linear-gradient(90deg,'+item.c+' 0,'+item.c+' 5px,transparent 5px,transparent 8px)':''}"></span>${item.l}</span>`
+  ).join('');
+}
+
+function updateChartPoint(age, val) {
+  if (!chartInstance) return;
+  const ptDataset = chartInstance.data.datasets[chartInstance.data.datasets.length - 1];
+  ptDataset.data = [{x: age, y: val}];
+  chartInstance.update('none');
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+
+renderMeasureGrid();
+</script>
+</body>
+</html>
